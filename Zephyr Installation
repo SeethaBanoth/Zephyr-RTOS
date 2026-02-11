@@ -1,0 +1,177 @@
+# Installation Steps for Zephyr RTOS
+Ubuntu **24.04.3 LTS (Noble)** is **fully supported** for Zephyr RTOS.
+# ✅ Zephyr RTOS Installation
+**Ubuntu 24.04.3 LTS (Clean Steps)**
+## 🧹 Step 0: Update your system
+-------------------------------------
+```bash
+sudo apt update
+sudo apt upgrade -y
+---
+--------------------------------------
+
+# 🛠 Step 1: Install required system packages
+
+These are **mandatory** for Zephyr.
+------------------------------------------
+```bash
+sudo apt install -y \
+  git cmake ninja-build gperf ccache \
+  dfu-util device-tree-compiler \
+  python3-venv python3-pip python3-setuptools \
+  wget unzip xz-utils file make \
+  gcc g++ \
+  libssl-dev openssl \
+  flex bison \
+  openocd
+```
+---------------------------------------------------------------
+
+```bash
+mkdir -p ~/zephyrproject
+cd ~/zephyrproject
+
+python3 -m venv zephyr-venv
+source zephyr-venv/bin/activate
+```
+---------------------------------------------------------------------
+
+## ⬆️ Step 3: Upgrade pip inside venv
+
+```bash
+pip install --upgrade pip setuptools wheel
+```
+
+---
+------------------------------------------------------------------------
+## 🌍 Step 4: Install `west`
+
+`west` is Zephyr’s meta-tool.
+
+```bash
+pip install west
+```
+
+Verify:
+
+```bash
+west --version
+```
+
+----------------------------------------------------------------
+
+## 📦 Step 5: Initialize Zephyr workspace
+
+```bash
+cd ~/zephyrproject
+west init zephyr-workspace
+cd zephyr-workspace
+```
+
+-----------------------------------------------------------------
+
+## 🔄 Step 6: Download Zephyr source & modules
+
+```bash
+west update
+```
+
+⏳ This takes time (downloads all Zephyr modules).
+
+-----------------------------------------
+
+## 🧠 Step 7: Export Zephyr environment
+
+```bash
+west zephyr-export
+```
+
+--------------------------------------------------------------
+
+## 🧰 Step 8: Install Python dependencies
+
+```bash
+pip install -r zephyr/scripts/requirements.txt
+```
+
+--------------------------------------------------------------
+
+## ⚙️ Step 9: Install Zephyr SDK
+
+### Download SDK
+
+```bash
+cd ~
+wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.8/zephyr-sdk-0.16.8_linux-x86_64.tar.xz
+```
+
+### Extract
+
+```bash
+tar -xf zephyr-sdk-0.16.8_linux-x86_64.tar.xz
+cd zephyr-sdk-0.16.8
+```
+
+### Run setup
+
+```bash
+./setup.sh
+```
+------------------------------------------------------------------------------------
+
+## 🔗 Step 10: Set SDK environment
+
+Add this to your shell config:
+
+```bash
+nano ~/.bashrc
+```
+
+Add at the bottom:
+
+```bash
+export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+export ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-0.16.8
+```
+
+Apply:
+
+```bash
+source ~/.bashrc
+```
+
+---------------------------------------------------------
+
+## 🧪 Step 11: Build a test application (HELLO WORLD)
+
+```bash
+cd ~/zephyrproject/zephyr-workspace
+source ~/zephyrproject/zephyr-venv/bin/activate
+
+west build -b qemu_x86 zephyr/samples/hello_world
+```
+
+Run it:
+
+```bash
+west build -t run
+```
+
+🎉 You should see:
+
+```
+Hello World! qemu_x86
+```
+
+---
+
+## ✅ Installation Verification Checklist
+
+| Check          | Command                        | Expected      |
+| -------------- | ------------------------------ | ------------- |
+| west installed | `west --version`               | Version shown |
+| Zephyr cloned  | `ls zephyr`                    | Folder exists |
+| SDK set        | `echo $ZEPHYR_SDK_INSTALL_DIR` | Path shown    |
+| Build works    | hello_world                    | Success       |
+
+---
