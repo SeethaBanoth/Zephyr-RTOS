@@ -1,14 +1,14 @@
 # Steps to build a LED Blinking Project
-═══════════════════════════════════════════════════════════════════════════════
+
 ## STEP 1: Create & enter project directory
-═══════════════════════════════════════════════════════════════════════════════
+
 ```bash
 mkdir ~/esp32_zephyr_led && cd ~/esp32_zephyr_led
 ```
  ↑ Creates CLEAN project folder in home directory (~/) - keeps everything organized
  ↑ cd enters the folder - all future commands work here
 
-═══════════════════════════════════════════════════════════════════════════════
+
 ## STEP 2: Activate Zephyr environment (REQUIRED every new terminal)
 ═══════════════════════════════════════════════════════════════════════════════
 ```bash
