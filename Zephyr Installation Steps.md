@@ -1,6 +1,6 @@
-# Zephyr RTOS Complete Installation Guide - Ubuntu 24.04.3 LTS ✅
+# Zephyr RTOS Complete Installation Guide - Ubuntu 20.04 LTS ✅
 
-**Feb 11, 2026 | Ubuntu 24.04.3 LTS (Noble) | 100% Working**
+**Feb 11, 2026 | Ubuntu 20.04 LTS (Noble) | 100% Working**
 
 ---
 
