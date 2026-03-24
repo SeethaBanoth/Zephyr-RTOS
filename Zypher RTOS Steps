@@ -1,0 +1,945 @@
+STEP 1 — Install Required Packages
+
+Open terminal and run:
+
+sudo apt update
+sudo apt install git wget flex bison gperf python3 python3-pip python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util
+
+
+
+STEP 2 — Create ESP32 Workspace
+
+Run these commands one by one.
+
+mkdir -p ~/esp32_projects
+cd ~/esp32_projects
+
+Check location:
+
+pwd
+
+
+
+STEP 3 — Clone ESP-IDF
+
+Run this command:
+
+git clone https://github.com/espressif/esp-idf.git
+
+Wait until cloning completes.
+
+You will see something like:
+
+Cloning into 'esp-idf'...
+Receiving objects...
+Resolving deltas...
+
+
+
+STEP 4 — Go inside ESP-IDF folder
+
+Run:
+
+cd ~/esp32_projects/esp-idf
+
+Verify files:
+
+ls
+
+You should see files like:
+
+CMakeLists.txt
+components
+docs
+examples
+install.sh
+export.sh
+tools
+
+
+
+STEP 5 — Install ESP-IDF Toolchain
+
+Run this command:
+
+./install.sh
+
+This script will automatically install:
+
+ESP32 Xtensa compiler
+
+Python packages
+
+Flash tools
+
+Build tools required for ESP32 development
+
+⏱ Expected time: 10–20 minutes
+
+During installation you will see messages like:
+
+Installing ESP-IDF tools
+Installing Python environment
+Downloading xtensa-esp32 toolchain
+
+Let it complete fully.
+
+
+
+STEP 6 — Activate the Environment
+
+After installation finishes, run:
+
+source export.sh
+
+You should see something like:
+
+Setting IDF_PATH to /home/seetha/esp32_projects/esp-idf
+Adding ESP-IDF tools to PATH
+
+
+
+STEP 7 — Verify Installation
+
+Run:
+
+idf.py --version
+
+Example output:
+
+ESP-IDF v5.x
+
+If you see this, the framework is ready.
+
+
+
+STEP 8 — Make Environment Permanent
+
+So you don't need to run export.sh every time:
+
+echo 'source ~/esp32_projects/esp-idf/export.sh' >> ~/.bashrc
+
+Reload:
+
+source ~/.bashrc
+
+
+
+STEP 9 — Go to Workspace
+
+Run:
+
+cd ~/esp32_projects
+
+Verify:
+
+pwd
+
+
+
+STEP 10 — Create Project Folder
+
+mkdir ble_tracking
+cd ble_tracking
+
+Check:
+
+pwd
+
+
+
+STEP 11 — Create Device Folders
+
+Run:
+
+mkdir beacon1 beacon2 scanner
+
+Check:
+
+ls
+
+You should see:
+
+beacon1
+beacon2
+scanner
+
+
+                             Creation of beacon1
+                             
+                             
+STEP 1 — Create First ESP32 Project (Beacon1)
+
+Move into the beacon1 folder:
+
+cd beacon1
+
+Create an ESP32 project using ESP-IDF:
+
+idf.py create-project beacon1
+
+After that enter the project:
+
+cd beacon1
+
+Check structure:
+
+ls
+
+Expected output:
+
+CMakeLists.txt
+main
+
+
+
+STEP 2 — Enter Source Folder
+
+cd main
+
+Check files:
+
+ls
+
+Expected:
+
+CMakeLists.txt
+beacon1.c
+
+
+
+STEP 3 — Open the Source File
+
+Run:
+
+vi beacon1.c
+
+Press i to enter INSERT mode.
+
+
+#include <stdio.h>
+#include "nvs_flash.h"
+#include "esp_bt.h"
+#include "esp_gap_ble_api.h"
+#include "esp_bt_main.h"
+#include "esp_log.h"
+
+static const char *TAG = "BLE_BEACON";
+
+static uint8_t adv_service_uuid128[16] = {
+    0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+};
+
+static esp_ble_adv_data_t adv_data = {
+    .set_scan_rsp = false,
+    .include_name = true,
+    .include_txpower = true,
+    .service_uuid_len = sizeof(adv_service_uuid128),
+    .p_service_uuid = adv_service_uuid128,
+    .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
+};
+
+static esp_ble_adv_params_t adv_params = {
+    .adv_int_min = 0x20,
+    .adv_int_max = 0x40,
+    .adv_type = ADV_TYPE_IND,
+    .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map = ADV_CHNL_ALL,
+    .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
+
+void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
+{
+    switch(event) {
+
+        case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
+            esp_ble_gap_start_advertising(&adv_params);
+            break;
+
+        case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
+            ESP_LOGI(TAG, "Beacon Advertising Started");
+            break;
+
+        default:
+            break;
+    }
+}
+
+void app_main(void)
+{
+    nvs_flash_init();
+
+    esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    esp_bt_controller_init(&bt_cfg);
+    esp_bt_controller_enable(ESP_BT_MODE_BLE);
+
+    esp_bluedroid_init();
+    esp_bluedroid_enable();
+
+    esp_ble_gap_register_callback(gap_event_handler);
+
+    // IMPORTANT: Set beacon name
+    esp_ble_gap_set_device_name("beacon1");
+
+    esp_ble_gap_config_adv_data(&adv_data);
+}
+
+
+STEP 4 — Save and Exit vi
+
+Press:
+
+ESC
+
+Then type:
+
+:wq
+
+Press ENTER.
+
+            
+
+Step 5 — Edit CMakeLists.txt
+
+Go to the main folder:
+
+cd ~/esp32_projects/ble_tracking/beacon1/beacon1/main
+
+Open the file:
+
+vi CMakeLists.txt
+
+idf_component_register(
+    SRCS "beacon1.c"
+    INCLUDE_DIRS "."
+    REQUIRES bt nvs_flash
+)
+
+
+
+Step 6 — Save the File
+
+Press:
+
+ESC
+
+Then type:
+
+:wq
+
+Press ENTER.
+
+
+ 
+                                      Enabling Bluetooth
+                                      
+		Step 1 — Open menuconfig
+		
+		idf.py menuconfig
+
+		Navigate to:
+
+		Component config → Bluetooth
+				                      
+		Step 2 — Enable Bluetooth
+
+		You are at:
+
+		Component config → Bluetooth
+		[ ] Bluetooth
+
+		Press SPACE on Bluetooth so it becomes:
+
+		[*] Bluetooth
+
+		Then press ENTER on Bluetooth.
+
+		Step 3 — Configure Bluetooth options
+
+		Inside the Bluetooth menu, set these:
+
+		Host → Bluedroid - Dual-mode
+		Controller → Enabled
+
+		So it should look like:
+
+		[*] Bluetooth
+		    Host (Bluedroid - Dual-mode)  --->
+		    Controller (Enabled)  --->
+
+		You do not need to change other options.
+
+		Step 4 — Save and exit
+
+		Press:
+
+		S
+
+		to Save, then:
+
+		Q
+
+		until you exit menuconfig.
+
+step 7: Build the project
+
+cd ~/esp32_projects/ble_tracking/beacon1/beacon1
+idf.py fullclean
+idf.py build
+
+✅ If there are no errors, your build is successful.
+
+step 8: Check ESP32 serial port
+
+Run:
+
+ls /dev/ttyUSB* /dev/ttyACM*
+
+Example output:
+
+/dev/ttyACM0
+
+(or /dev/ttyUSB0 depending on your board)
+
+step 9: Flash the scanner
+
+idf.py -p /dev/ttyACM0 flash
+
+Wait until:
+
+Hard resetting via RTS pin...
+Done
+step 10:  Start the monitor
+
+idf.py -p /dev/ttyACM0 monitor
+
+					Creation of beacon 2
+STEP 1 — Create First ESP32 Project (Beacon2)
+
+Move into the beacon2 folder:
+
+cd beacon2
+
+Create an ESP32 project using ESP-IDF:
+
+idf.py create-project beacon2
+
+After that enter the project:
+
+cd beacon2
+
+Check structure:
+
+ls
+
+Expected output:
+
+CMakeLists.txt
+main
+
+
+
+STEP 2 — Enter Source Folder
+
+cd main
+
+Check files:
+
+ls
+
+Expected:
+
+CMakeLists.txt
+beacon2.c
+
+
+STEP 3 — Open the Source File
+
+Run:
+
+vi beacon2.c
+
+Press i to enter INSERT mode.
+
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#include "esp_gap_ble_api.h"
+
+#define DEVICE_NAME "beacon2"
+
+static const char *TAG = "BEACON2";
+
+static esp_ble_adv_params_t adv_params = {
+    .adv_int_min       = 0x100,
+    .adv_int_max       = 0x200,
+    .adv_type          = ADV_TYPE_NONCONN_IND,
+    .own_addr_type     = BLE_ADDR_TYPE_PUBLIC,
+    .channel_map       = ADV_CHNL_ALL,
+    .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
+};
+
+static esp_ble_adv_data_t adv_data = {
+    .set_scan_rsp = false,
+    .include_name = true,
+    .include_txpower = true,
+    .manufacturer_len = 0,
+    .p_manufacturer_data = NULL,
+    .service_data_len = 0,
+    .p_service_data = NULL,
+    .service_uuid_len = 0,
+    .p_service_uuid = NULL,
+    .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
+};
+
+static void gap_event_handler(esp_gap_ble_cb_event_t event,
+                              esp_ble_gap_cb_param_t *param)
+{
+    switch(event)
+    {
+        case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
+            esp_ble_gap_start_advertising(&adv_params);
+            break;
+
+        case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
+            if(param->adv_start_cmpl.status == ESP_BT_STATUS_SUCCESS)
+                ESP_LOGI(TAG, "Beacon2 advertising started");
+            else
+                ESP_LOGE(TAG, "Advertising failed");
+            break;
+
+        default:
+            break;
+    }
+}
+
+void app_main(void)
+{
+    esp_err_t ret = nvs_flash_init();
+
+    if(ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(ret);
+
+    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+
+    ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
+    ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
+    ESP_ERROR_CHECK(esp_bluedroid_init());
+    ESP_ERROR_CHECK(esp_bluedroid_enable());
+
+    ESP_ERROR_CHECK(esp_ble_gap_register_callback(gap_event_handler));
+
+    ESP_ERROR_CHECK(esp_ble_gap_set_device_name(DEVICE_NAME));
+
+    ESP_ERROR_CHECK(esp_ble_gap_config_adv_data(&adv_data));
+
+    ESP_LOGI(TAG, "Beacon2 ready");
+}
+
+STEP 4 — Save and Exit vi
+
+Press:
+
+ESC
+
+Then type:
+
+:wq
+
+Press ENTER.
+
+            
+
+Step 5 — Edit CMakeLists.txt
+
+Go to the main folder:
+
+cd ~/esp32_projects/ble_tracking/beacon2/beacon2/main
+
+Open the file:
+
+vi CMakeLists.txt
+
+idf_component_register(SRCS "beacon2.c"
+                    INCLUDE_DIRS ".")
+
+
+Step 6 — Save the File
+
+Press:
+
+ESC
+
+Then type:
+
+:wq
+
+Press ENTER.
+
+step 7: Create CMakeLists inside beacon2 folder
+
+cd ~/esp32_projects/ble_tracking/beacon2/beacon2/
+vi CMakeLists.c
+
+paste inside this:
+ 
+cmake_minimum_required(VERSION 3.5)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(beacon2)
+
+ 				Enabling Bluetooth
+                                      
+		Step 1 — Open menuconfig
+		
+		idf.py menuconfig
+
+		Navigate to:
+
+		Component config → Bluetooth
+				                      
+		Step 2 — Enable Bluetooth
+
+		You are at:
+
+		Component config → Bluetooth
+		[ ] Bluetooth
+
+		Press SPACE on Bluetooth so it becomes:
+
+		[*] Bluetooth
+
+		Then press ENTER on Bluetooth.
+
+		Step 3 — Configure Bluetooth options
+
+		Inside the Bluetooth menu, set these:
+
+		Host → Bluedroid - Dual-mode
+		Controller → Enabled
+
+		So it should look like:
+
+		[*] Bluetooth
+		    Host (Bluedroid - Dual-mode)  --->
+		    Controller (Enabled)  --->
+
+		You do not need to change other options.
+
+		Step 4 — Save and exit
+
+		Press:
+
+		S
+
+		to Save, then:
+
+		Q
+
+		until you exit menuconfig.
+
+step 7: Build the project
+
+cd ~/esp32_projects/ble_tracking/beacon2/beacon2
+idf.py fullclean
+idf.py build
+
+✅ If there are no errors, your build is successful.
+
+step 8: Check ESP32 serial port
+
+Run:
+
+ls /dev/ttyUSB* /dev/ttyACM*
+
+Example output:
+
+/dev/ttyACM0
+
+(or /dev/ttyUSB0 depending on your board)
+
+step 9: Flash the scanner
+
+idf.py -p /dev/ttyACM0 flash
+
+Wait until:
+
+Hard resetting via RTS pin...
+Done
+step 10:  Start the monitor
+
+idf.py -p /dev/ttyACM0 monitor
+
+
+
+
+					Creation of a Scanner
+
+Step 1: Go to the scanner folder
+
+Create CMakeLists.txt in scanner/ folder (if not already):
+
+vi CMakeLists.txt
+
+Paste:
+
+cmake_minimum_required(VERSION 3.5)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(scanner)
+
+step 2: Go to the scanner folder
+
+cd ~/esp32_projects/ble_tracking/scanner
+mkdir -p main
+cd main
+
+Step 3: Create and edit main.c with vi
+
+vi main.c
+
+Inside vi, press i to enter insert mode, then paste the following code:
+
+#include "esp_gap_ble_api.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#include <string.h>
+#include <math.h>
+
+static const char *TAG = "BLE_SCANNER";
+
+const char *beacons[] = {"beacon1", "beacon2"};
+#define NUM_BEACONS 2
+
+float calculate_distance(int rssi)
+{
+    int txPower = -59;   // RSSI value at 1 meter
+    float n = 2.0;       // signal propagation constant
+
+    float distance = pow(10.0, ((float)(txPower - rssi) / (10 * n)));
+
+    return distance;
+}
+
+static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
+{
+    switch(event)
+    {
+        case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
+            esp_ble_gap_start_scanning(0);   // start continuous scanning
+            break;
+
+        case ESP_GAP_BLE_SCAN_RESULT_EVT:
+        {
+            esp_ble_gap_cb_param_t *scan_result = param;
+
+            char name[32] = {0};
+            uint8_t name_len = 0;
+
+            uint8_t *adv_name = esp_ble_resolve_adv_data(
+                scan_result->scan_rst.ble_adv,
+                ESP_BLE_AD_TYPE_NAME_CMPL,
+                &name_len);
+
+            if (adv_name && name_len > 0)
+            {
+                memcpy(name, adv_name, name_len);
+                name[name_len] = '\0';
+
+                for (int i = 0; i < NUM_BEACONS; i++)
+                {
+                    if (strcmp(name, beacons[i]) == 0)
+                    {
+                        int rssi = scan_result->scan_rst.rssi;
+                        float distance = calculate_distance(rssi);
+
+                        ESP_LOGI(TAG,
+                                 "Detected %s RSSI:%d Distance: %.2f meters",
+                                 name,
+                                 rssi,
+                                 distance);
+                    }
+		}
+            }
+
+            break;
+        }
+
+        default:
+            break;
+    }
+}
+static esp_ble_scan_params_t ble_scan_params = {
+    .scan_type = BLE_SCAN_TYPE_ACTIVE,
+    .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+    .scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
+    .scan_interval = 0x50,
+    .scan_window = 0x30,
+    .scan_duplicate = BLE_SCAN_DUPLICATE_DISABLE
+};
+void app_main(void)
+{
+    esp_err_t ret = nvs_flash_init();
+
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(ret);
+
+    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+
+    ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
+    ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
+    ESP_ERROR_CHECK(esp_bluedroid_init());
+    ESP_ERROR_CHECK(esp_bluedroid_enable());
+
+    ESP_ERROR_CHECK(esp_ble_gap_register_callback(gap_cb));
+
+    ESP_ERROR_CHECK(esp_ble_gap_set_scan_params(&ble_scan_params));
+
+    ESP_LOGI(TAG, "BLE Scanner Started");
+}
+
+
+Step 4: Save and exit vi
+
+Press Esc
+Type :wq
+Press Enter
+
+Step 5: Go back to main folder and create CMakeLists.txt
+
+cd ~/esp32_projects/ble_tracking/scanner/main
+vi CMakeLists.txt
+
+Inside vi, press i and paste:
+
+idf_component_register(SRCS "main.c"
+                    INCLUDE_DIRS ".")
+
+Save with :wq.
+
+step 6: go to the scanner folder and create CMakeLists.txt
+
+cd ~/esp32_projects/ble_tracking/scanner/
+vi CMakeLists.txt
+
+inside vi, press i and paste:
+
+cmake_minimum_required(VERSION 3.5)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(scanner)
+
+
+
+
+					Enabling the bluetooth
+		Step 1 — Open menuconfig
+	
+		idf.py menuconfig
+
+		Navigate to:
+
+		Component config → Bluetooth
+				                      
+		Step 2 — Enable Bluetooth
+
+		You are at:
+
+		Component config → Bluetooth
+		[ ] Bluetooth
+
+		Press SPACE on Bluetooth so it becomes:
+
+		[*] Bluetooth
+
+		Then press ENTER on Bluetooth.
+
+		Step 3 — Configure Bluetooth options
+
+		Inside the Bluetooth menu, set these:
+
+		Host → Bluedroid - Dual-mode
+		Controller → Enabled
+
+		So it should look like:
+
+		[*] Bluetooth
+		    Host (Bluedroid - Dual-mode)  --->
+		    Controller (Enabled)  --->
+
+		You do not need to change other options.
+
+		Step 4 — Save and exit
+
+		Press:
+
+		S
+
+		to Save, then:
+
+		Q
+
+		until you exit menuconfig.
+
+step 6: build your project
+
+cd ~/esp32_projects/ble_tracking/scanner
+idf.py fullclean
+idf.py build
+
+step 7: Find the correct port
+
+On Linux:
+
+ls /dev/ttyUSB*
+
+or
+
+dmesg | grep tty
+
+You should see something like:
+
+/dev/ttyUSB0
+
+That’s your ESP32’s port.
+
+step 8: Flash using the correct port
+
+Replace PORT with your actual port, e.g., /dev/ttyUSB0:
+
+idf.py -p /dev/ttyUSB0 flash
+
+step 9: Open Serial Monitor for Scanner
+
+On your laptop, run:
+
+idf.py -p /dev/ttyUSB0 monitor
+
+You should see something like:
+BLE_SCANNER: BLE Scanner Started
+
+This confirms the scanner is running.
+
+
